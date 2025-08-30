@@ -1,0 +1,29 @@
+{
+  "project_info": {
+    "project_number": "269131715796",
+    "project_id": "homeworkaid-efa0d",
+    "storage_bucket": "homeworkaid-efa0d.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:269131715796:android:9114b7be37eb409c6bd741",
+        "android_client_info": {
+          "package_name": "com.example.schoolqa"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyCaAmg0_GsTE-UbRf2jEJQsPqhrMPo8mr0"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}
