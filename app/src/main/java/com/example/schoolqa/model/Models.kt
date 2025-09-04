@@ -36,5 +36,6 @@ data class Answer(
 /** Vot individual al unui utilizator pentru un răspuns */
 data class Vote(
     val userId: String = "",
-    val value: Int = 0 // +1 like, -1 dislike
+    val value: Int = 0, // +1 like, -1 dislike
+    val questionId: String = ""
 )
