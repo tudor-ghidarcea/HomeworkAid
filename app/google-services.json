@@ -12,7 +12,12 @@
           "package_name": "com.example.schoolqa"
         }
       },
-      "oauth_client": [],
+      "oauth_client": [
+        {
+          "client_id": "269131715796-mlqcjguiqpqeoa18cvkj1jv67dba7vji.apps.googleusercontent.com",
+          "client_type": 3
+        }
+      ],
       "api_key": [
         {
           "current_key": "AIzaSyCaAmg0_GsTE-UbRf2jEJQsPqhrMPo8mr0"
@@ -20,7 +25,12 @@
       ],
       "services": {
         "appinvite_service": {
-          "other_platform_oauth_client": []
+          "other_platform_oauth_client": [
+            {
+              "client_id": "269131715796-mlqcjguiqpqeoa18cvkj1jv67dba7vji.apps.googleusercontent.com",
+              "client_type": 3
+            }
+          ]
         }
       }
     }

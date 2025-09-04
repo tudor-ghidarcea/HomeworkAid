@@ -19,20 +19,32 @@ import com.google.firebase.auth.FirebaseAuth
 import com.google.firebase.firestore.FirebaseFirestore
 
 class MainActivity : ComponentActivity() {
+
+    private lateinit var auth: FirebaseAuth
+
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         FirebaseApp.initializeApp(this)
-        setContent { App() }
+
+        auth = FirebaseAuth.getInstance()
+
+        setContent { App(auth) }
     }
 }
 
 @Composable
-fun App() {
+fun App(auth: FirebaseAuth) {
     AppTheme {
         Surface {
             val nav = rememberNavController()
-            NavHost(navController = nav, startDestination = Routes.Auth.route) {
-                composable(Routes.Auth.route) { AuthScreen(nav) }
+
+            val startDestination = if (auth.currentUser != null) {
+                Routes.Feed.route
+            } else {
+                Routes.Auth.route
+            }
+            NavHost(navController = nav, startDestination = startDestination) {
+                composable(Routes.Auth.route) { AuthScreen(nav, auth) }
                 composable(Routes.Feed.route) { FeedScreen(nav) }
                 composable(Routes.Post.route) { PostQuestionScreen(nav) }
                 composable(
