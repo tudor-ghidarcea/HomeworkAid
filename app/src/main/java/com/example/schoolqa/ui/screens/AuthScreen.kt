@@ -12,15 +12,19 @@ import androidx.navigation.NavController
 import com.example.schoolqa.Routes
 import com.example.schoolqa.data.AuthRepository
 import com.google.firebase.auth.FirebaseAuth
+import com.google.firebase.firestore.FirebaseFirestore
 import kotlinx.coroutines.launch
 
 @Composable
 fun AuthScreen(nav: NavController, auth: FirebaseAuth) {
-    val authRepo = remember { AuthRepository(auth) }
+    val authRepo = remember { AuthRepository(auth, FirebaseFirestore.getInstance()) }
     val scope = rememberCoroutineScope()
 
+    var identifier by remember { mutableStateOf("") }
     var email by remember { mutableStateOf("") }
+    var username by remember { mutableStateOf("") }
     var password by remember { mutableStateOf("") }
+
     var isLogin by remember { mutableStateOf(true) }
     var error by remember { mutableStateOf<String?>(null) }
     var loading by remember { mutableStateOf(false) }
@@ -34,12 +38,33 @@ fun AuthScreen(nav: NavController, auth: FirebaseAuth) {
 
             Spacer(Modifier.height(16.dp))
 
-            OutlinedTextField(
-                value = email,
-                onValueChange = { email = it },
-                label = { Text("Email") },
-                singleLine = true
-            )
+            if (isLogin) {
+                OutlinedTextField(
+                    value = identifier,
+                    onValueChange = { identifier = it },
+                    label = { Text("Email sau Nume utilizator") },
+                    singleLine = true,
+                    modifier = Modifier.fillMaxWidth()
+                )
+            } else {
+                OutlinedTextField(
+                    value = email,
+                    onValueChange = { email = it },
+                    label = { Text("Email") },
+                    singleLine = true,
+                    modifier = Modifier.fillMaxWidth()
+                )
+                Spacer(Modifier.height(8.dp))
+
+                OutlinedTextField(
+                    value = username,
+                    onValueChange = { username = it },
+                    label = { Text("Nume utilizator") },
+                    singleLine = true,
+                    modifier = Modifier.fillMaxWidth()
+                )
+            }
+
             Spacer(Modifier.height(8.dp))
 
             OutlinedTextField(
@@ -47,7 +72,8 @@ fun AuthScreen(nav: NavController, auth: FirebaseAuth) {
                 onValueChange = { password = it },
                 label = { Text("Parolă") },
                 singleLine = true,
-                visualTransformation = PasswordVisualTransformation()
+                visualTransformation = PasswordVisualTransformation(),
+                modifier = Modifier.fillMaxWidth()
             )
 
             Spacer(Modifier.height(12.dp))
@@ -62,16 +88,27 @@ fun AuthScreen(nav: NavController, auth: FirebaseAuth) {
 
             Button(
                 onClick = {
-                    if (email.isBlank() || password.isBlank()) {
-                        error = "Email și parola nu pot fi goale."
-                        return@Button
+                    if (isLogin) {
+                        if (identifier.isBlank() || password.isBlank()) {
+                            error = "Introduceți email/nume utilizator și parola."
+                            return@Button
+                        }
+                    } else {
+                        if (email.isBlank() || username.isBlank() || password.isBlank()) {
+                            error = "Toate câmpurile sunt obligatorii."
+                            return@Button
+                        }
                     }
+
                     error = null
                     loading = true
                     scope.launch {
                         try {
-                            if (isLogin) authRepo.signIn(email, password)
-                            else authRepo.signUp(email, password)
+                            if (isLogin) {
+                                authRepo.signIn(identifier.trim(), password.trim())
+                            } else {
+                                authRepo.signUp(email.trim(), password.trim(), username.trim())
+                            }
 
                             nav.navigate(Routes.Feed.route) {
                                 popUpTo(Routes.Auth.route) { inclusive = true }
@@ -94,6 +131,7 @@ fun AuthScreen(nav: NavController, auth: FirebaseAuth) {
 
             Spacer(Modifier.height(24.dp))
 
+            // login anonim (opțional)
             Button(
                 onClick = {
                     error = null
