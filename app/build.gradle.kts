@@ -44,15 +44,17 @@ dependencies {
     implementation(composeBom)
     androidTestImplementation(composeBom)
 
-    // Compose core și Material
+    // Compose core si Material
     implementation("androidx.activity:activity-compose:1.9.2")
     implementation("androidx.compose.material3:material3")
+    implementation("androidx.compose.material:material-icons-core")
     implementation("androidx.compose.material:material-icons-extended")
     implementation("androidx.compose.ui:ui")
     implementation("androidx.compose.ui:ui-tooling-preview")
+    implementation("androidx.compose.runtime:runtime")
     debugImplementation("androidx.compose.ui:ui-tooling")
 
-    // Navigation și ViewModel
+    // Navigation si ViewModel
     implementation("androidx.navigation:navigation-compose:2.7.7")
     implementation("androidx.lifecycle:lifecycle-viewmodel-compose:2.8.4")
     implementation("androidx.lifecycle:lifecycle-runtime-ktx:2.8.4")
@@ -76,6 +78,4 @@ dependencies {
     androidTestImplementation("androidx.test.ext:junit:1.2.1")
     androidTestImplementation("androidx.test.espresso:espresso-core:3.6.1")
     androidTestImplementation("androidx.compose.ui:ui-test-junit4")
-
-    implementation("com.google.android.gms:play-services-auth:21.0.0")
 }
