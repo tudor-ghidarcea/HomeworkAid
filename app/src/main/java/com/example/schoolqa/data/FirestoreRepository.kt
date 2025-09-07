@@ -2,10 +2,8 @@ package com.example.schoolqa.data
 
 import com.example.schoolqa.model.Answer
 import com.example.schoolqa.model.Question
-import com.example.schoolqa.model.Vote
 import com.google.firebase.Timestamp
 import com.google.firebase.auth.FirebaseAuth
-import com.google.firebase.firestore.FieldValue
 import com.google.firebase.firestore.FirebaseFirestore
 import kotlinx.coroutines.tasks.await
 import kotlinx.coroutines.channels.awaitClose
@@ -17,22 +15,6 @@ class FirestoreRepository(
     private val auth: FirebaseAuth
 ) {
     private val questions = db.collection("questions")
-
-    fun observeQuestions(): Flow<List<Question>> = callbackFlow {
-        val reg = questions
-            .orderBy("createdAt", com.google.firebase.firestore.Query.Direction.DESCENDING)
-            .addSnapshotListener { snap, err ->
-                if (err != null) {
-                    trySend(emptyList())
-                    return@addSnapshotListener
-                }
-                val list = snap?.documents?.mapNotNull { doc ->
-                    doc.toObject(Question::class.java)?.copy(id = doc.id)
-                } ?: emptyList()
-                trySend(list)
-            }
-        awaitClose { reg.remove() }
-    }
 
     suspend fun postQuestion(title: String, body: String, subject: String): String {
         val user = auth.currentUser ?: throw IllegalStateException("Not signed in")
@@ -85,7 +67,6 @@ class FirestoreRepository(
         questions.document(questionId).collection("answers").add(answer).await()
     }
 
-    /** Votează un răspuns. value: +1 like, -1 dislike. Un singur vot per utilizator. */
     suspend fun voteAnswer(questionId: String, answerId: String, value: Int) {
         val user = auth.currentUser ?: throw IllegalStateException("Not signed in")
         val answerRef = questions.document(questionId).collection("answers").document(answerId)
@@ -102,16 +83,52 @@ class FirestoreRepository(
             var newLikes = likes
             var newDislikes = dislikes
 
-            // Retrage efectul votului precedent
             when (prevValue) {
                 1 -> newLikes -= 1
                 -1 -> newDislikes -= 1
             }
-            // Aplică noul vot (dacă e diferit de precedent)
             if (value == 1) newLikes += 1 else if (value == -1) newDislikes += 1
 
             tr.update(answerRef, mapOf("likes" to newLikes, "dislikes" to newDislikes))
             tr.set(voteRef, mapOf("userId" to user.uid, "value" to value))
         }.await()
+    }
+
+    suspend fun deleteQuestion(questionId: String) {
+        val questionRef = questions.document(questionId)
+        val answersSnap = questionRef.collection("answers").get().await()
+
+        db.runBatch { batch ->
+            for (doc in answersSnap.documents) {
+                batch.delete(doc.reference)
+            }
+            batch.delete(questionRef)
+        }.await()
+    }
+
+    suspend fun deleteAnswer(questionId: String, answerId: String) {
+        val answerRef = questions.document(questionId).collection("answers").document(answerId)
+        answerRef.delete().await()
+    }
+
+    fun observeQuestionsBySubject(subject: String): Flow<List<Question>> = callbackFlow {
+        val query = if (subject == "Toate") {
+            questions.orderBy("createdAt", com.google.firebase.firestore.Query.Direction.DESCENDING)
+        } else {
+            questions.whereEqualTo("subject", subject)
+                .orderBy("createdAt", com.google.firebase.firestore.Query.Direction.DESCENDING)
+        }
+
+        val reg = query.addSnapshotListener { snap, err ->
+            if (err != null) {
+                trySend(emptyList())
+                return@addSnapshotListener
+            }
+            val list = snap?.documents?.mapNotNull { doc ->
+                doc.toObject(Question::class.java)?.copy(id = doc.id)
+            } ?: emptyList()
+            trySend(list)
+        }
+        awaitClose { reg.remove() }
     }
 }
