@@ -18,6 +18,7 @@ import com.google.firebase.auth.FirebaseAuth
 import com.google.firebase.firestore.FirebaseFirestore
 import kotlinx.coroutines.flow.collectLatest
 import kotlinx.coroutines.launch
+import androidx.compose.material.icons.filled.Close
 
 @Composable
 fun QuestionDetailScreen(nav: NavController, questionId: String) {
@@ -44,43 +45,110 @@ fun QuestionDetailScreen(nav: NavController, questionId: String) {
                 Text("de ${q.authorName} • ${q.subject}", style = MaterialTheme.typography.labelMedium)
             }
         }
-        Divider()
         Text("Răspunsuri", style = MaterialTheme.typography.titleLarge, modifier = Modifier.padding(16.dp))
         LazyColumn(Modifier.weight(1f)) {
-            items(answers) { a -> AnswerItem(a, onVote = { value ->
-                scope.launch {
-                    try { repo.voteAnswer(questionId, a.id, value) } catch (e: Exception) { /* handle */ }
-                }
-            }) }
+            items(answers) { a ->
+                val user = FirebaseAuth.getInstance().currentUser
+                val canDelete = (a.authorUid == user?.uid) || (question?.authorUid == user?.uid)
+
+                AnswerItem(
+                    a = a,
+                    canDelete = canDelete,
+                    onDelete = {
+                        scope.launch {
+                            repo.deleteAnswer(questionId, a.id!!)
+                        }
+                    },
+                    onVote = { value ->
+                        scope.launch {
+                            try { repo.voteAnswer(questionId, a.id!!, value) }
+                            catch (_: Exception) { }
+                        }
+                    }
+                )
+            }
         }
         Divider()
         Column(Modifier.padding(16.dp)) {
-            OutlinedTextField(value = newAnswer, onValueChange = { newAnswer = it }, label = { Text("Scrie un răspuns") }, modifier = Modifier.fillMaxWidth(), minLines = 2)
+            OutlinedTextField(
+                value = newAnswer,
+                onValueChange = { newAnswer = it },
+                label = { Text("Scrie un răspuns") },
+                modifier = Modifier.fillMaxWidth(),
+                minLines = 2
+            )
             error?.let { Text(it, color = MaterialTheme.colorScheme.error) }
             Spacer(Modifier.height(8.dp))
-            Button(onClick = {
-                scope.launch {
-                    try {
-                        repo.addAnswer(questionId, newAnswer.trim())
-                        newAnswer = ""
-                    } catch (e: Exception) { error = e.message }
-                }
-            }, enabled = newAnswer.isNotBlank(), modifier = Modifier.fillMaxWidth()) { Text("Trimite răspuns") }
+            Button(
+                onClick = {
+                    scope.launch {
+                        try {
+                            repo.addAnswer(questionId, newAnswer.trim())
+                            newAnswer = ""
+                        } catch (e: Exception) { error = e.message }
+                    }
+                },
+                enabled = newAnswer.isNotBlank(),
+                modifier = Modifier.fillMaxWidth()
+            ) {
+                Text("Trimite răspuns")
+            }
         }
     }
 }
 
 @Composable
-private fun AnswerItem(a: Answer, onVote: (Int) -> Unit) {
-    Card(Modifier
-        .fillMaxWidth()
-        .padding(horizontal = 16.dp, vertical = 8.dp)) {
+private fun AnswerItem(
+    a: Answer,
+    canDelete: Boolean,
+    onDelete: () -> Unit,
+    onVote: (Int) -> Unit
+) {
+    Card(
+        Modifier
+            .fillMaxWidth()
+            .padding(horizontal = 16.dp, vertical = 8.dp)
+    ) {
         Column(Modifier.padding(16.dp)) {
+            Row(
+                horizontalArrangement = Arrangement.SpaceBetween,
+                modifier = Modifier.fillMaxWidth()
+            ) {
+                Text(
+                    text = "${a.authorName} • ${
+                        a.createdAt?.toDate()?.let {
+                            java.text.SimpleDateFormat("dd.MM.yyyy HH:mm").format(it)
+                        } ?: ""
+                    }",
+                    style = MaterialTheme.typography.labelMedium,
+                    color = MaterialTheme.colorScheme.primary
+                )
+
+                if (canDelete) {
+                    IconButton(onClick = onDelete) {
+                        Icon(
+                            imageVector = Icons.Default.Close,
+                            contentDescription = "Șterge răspuns"
+                        )
+                    }
+                }
+            }
+
+            Spacer(Modifier.height(4.dp))
             Text(a.body)
             Spacer(Modifier.height(8.dp))
+
             Row(horizontalArrangement = Arrangement.spacedBy(12.dp)) {
-                AssistChip(onClick = { onVote(1) }, label = { Text("Like ${a.likes}") }, leadingIcon = { Icon(Icons.Default.ThumbUp, contentDescription = null) })
-                AssistChip(onClick = { onVote(-1) }, label = { Text("Dislike ${a.dislikes}") }, leadingIcon = { Icon(Icons.Default.ThumbDown, contentDescription = null) })
+                AssistChip(
+                    onClick = { onVote(1) },
+                    label = { Text("Like ${a.likes}") },
+                    leadingIcon = { Icon(Icons.Default.ThumbUp, contentDescription = null) }
+                )
+                AssistChip(
+                    onClick = { onVote(-1) },
+                    label = { Text("Dislike ${a.dislikes}") },
+                    leadingIcon = { Icon(Icons.Default.ThumbDown, contentDescription = null) }
+                )
             }
         }
     }
